@@ -19,12 +19,13 @@ export default function VacatureGenerator() {
 
   const [answers, setAnswers] = useState({});
   const [result, setResult] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (key, value) => {
     setAnswers({ ...answers, [key]: value });
   };
 
-  const generateVacature = () => {
+  const generateVacature = async () => {
     const prompt = `Schrijf een vacaturetekst op basis van deze input:
 
 0. Organisatie: ${answers.organisatie}
@@ -43,7 +44,27 @@ export default function VacatureGenerator() {
 
 De structuur moet zijn: Over het bedrijf, Over de functie, Profiel, Aanbod, Interesse. Schrijf helder en concreet, zonder clichés.`;
 
-    setResult(`Vacaturetekst gegenereerd op basis van input:\n\n${prompt}`);
+    setLoading(true);
+    try {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "gpt-4",
+          messages: [{ role: "user", content: prompt }]
+        })
+      });
+
+      const data = await response.json();
+      setResult(data.choices[0].message.content);
+    } catch (error) {
+      setResult("Er is iets misgelopen bij het genereren van de vacaturetekst.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -63,8 +84,9 @@ De structuur moet zijn: Over het bedrijf, Over de functie, Profiel, Aanbod, Inte
       <button
         onClick={generateVacature}
         className="mt-4 px-4 py-2 bg-blue-600 text-white rounded"
+        disabled={loading}
       >
-        Genereer vacaturetekst
+        {loading ? "Even geduld..." : "Genereer vacaturetekst"}
       </button>
       {result && (
         <div className="mt-6 border rounded p-4 bg-gray-50">
@@ -75,3 +97,4 @@ De structuur moet zijn: Over het bedrijf, Over de functie, Profiel, Aanbod, Inte
     </div>
   );
 }
+
